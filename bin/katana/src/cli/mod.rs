@@ -11,6 +11,9 @@ pub mod db;
 mod init;
 mod version;
 
+#[cfg(feature = "client")]
+mod rpc;
+
 use version::{generate_long, generate_short};
 
 #[derive(Debug, Parser)]
@@ -31,6 +34,8 @@ impl Cli {
                 Commands::Config(args) => args.execute(),
                 Commands::Completions(args) => args.execute(),
                 Commands::Init(args) => execute_async(args.execute())?,
+                #[cfg(feature = "client")]
+                Commands::Rpc(args) => execute_async(args.execute())?,
             };
         }
 
@@ -51,6 +56,10 @@ enum Commands {
 
     #[command(about = "Generate shell completion file for specified shell")]
     Completions(CompletionsArgs),
+
+    #[cfg(feature = "client")]
+    #[command(about = "RPC client for interacting with Katana")]
+    Rpc(rpc::RpcArgs),
 }
 
 #[derive(Debug, Args)]
