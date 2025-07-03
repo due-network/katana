@@ -1863,9 +1863,9 @@ dependencies = [
 
 [[package]]
 name = "backon"
-version = "1.4.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49fef586913a57ff189f25c9b3d034356a5bf6b3fa9a7f067588fe1698ba1f5d"
+checksum = "302eaff5357a264a2c42f127ecb8bac761cf99749fc3dc95677e2743991f99e7"
 dependencies = [
  "fastrand",
  "gloo-timers 0.3.0",
@@ -6272,6 +6272,7 @@ dependencies = [
  "dojo-utils",
  "katana-chain-spec",
  "katana-core",
+ "katana-gas-oracle",
  "katana-log",
  "katana-messaging",
  "katana-node",
@@ -6311,8 +6312,6 @@ name = "katana-core"
 version = "1.6.0-alpha.1"
 dependencies = [
  "alloy-primitives",
- "alloy-provider 0.4.2",
- "alloy-rpc-types-eth 0.4.2",
  "anyhow",
  "arbitrary",
  "assert_matches",
@@ -6323,6 +6322,7 @@ dependencies = [
  "katana-chain-spec",
  "katana-db",
  "katana-executor",
+ "katana-gas-oracle",
  "katana-metrics",
  "katana-pool",
  "katana-primitives",
@@ -6466,6 +6466,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "katana-gas-oracle"
+version = "1.6.0-alpha.1"
+dependencies = [
+ "alloy-provider 0.4.2",
+ "alloy-rpc-types-eth 0.4.2",
+ "alloy-transport-http 0.4.2",
+ "anyhow",
+ "backon",
+ "katana-primitives",
+ "katana-tasks",
+ "num-traits",
+ "parking_lot",
+ "reqwest 0.12.15",
+ "starknet 0.15.1",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "katana-grpc"
 version = "1.6.0-alpha.1"
 dependencies = [
@@ -6558,6 +6579,7 @@ dependencies = [
  "katana-db",
  "katana-executor",
  "katana-feeder-gateway",
+ "katana-gas-oracle",
  "katana-log",
  "katana-messaging",
  "katana-metrics",

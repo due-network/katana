@@ -1,12 +1,12 @@
 use alloy_primitives::U256;
 use katana_chain_spec::rollup::{self, FeeContract};
 use katana_chain_spec::{dev, ChainSpec, SettlementLayer};
-use katana_core::backend::gas_oracle::GasOracle;
 use katana_core::backend::storage::{Blockchain, Database};
 use katana_core::backend::Backend;
 use katana_executor::implementation::blockifier::cache::ClassCache;
 use katana_executor::implementation::blockifier::BlockifierFactory;
 use katana_executor::BlockLimits;
+use katana_gas_oracle::GasPriceOracle;
 use katana_primitives::chain::ChainId;
 use katana_primitives::env::CfgEnv;
 use katana_primitives::felt;
@@ -40,7 +40,7 @@ fn backend_with_db(chain_spec: &ChainSpec, provider: impl Database) -> Backend<B
     Backend::new(
         chain_spec.clone().into(),
         Blockchain::new(provider),
-        GasOracle::sampled_starknet(),
+        GasPriceOracle::create_for_testing(),
         executor(chain_spec),
     )
 }
