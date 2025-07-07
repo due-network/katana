@@ -43,6 +43,11 @@ pub struct ForkedProvider<Db: Database = katana_db::Db> {
 }
 
 impl<Db: Database> ForkedProvider<Db> {
+    /// ## Arguments
+    ///
+    /// - `db`: The database to use for the provider.
+    /// - `block_id`: The block number or hash to use as the fork point.
+    /// - `provider`: The Starknet JSON-RPC client to use for the provider.
     pub fn new(
         db: Db,
         block_id: BlockHashOrNumber,

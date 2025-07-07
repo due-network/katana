@@ -102,8 +102,19 @@ impl<EF: ExecutorFactory> Backend<EF> {
         let tx_count = transactions.len();
         let tx_hashes = transactions.iter().map(|tx| tx.hash).collect::<Vec<_>>();
 
+        let parent_hash = if block_env.number == 0 {
+            BlockHash::ZERO
+        } else {
+            let parent_block_num = block_env.number - 1;
+            self.blockchain
+                .provider()
+                .block_hash_by_num(parent_block_num)?
+                .expect("qed; missing block hash for parent block")
+        };
+
         // create a new block and compute its commitment
         let partial_header = PartialHeader {
+            parent_hash,
             number: block_env.number,
             timestamp: block_env.timestamp,
             starknet_version: CURRENT_STARKNET_VERSION,
@@ -111,7 +122,6 @@ impl<EF: ExecutorFactory> Backend<EF> {
             sequencer_address: block_env.sequencer_address,
             l2_gas_prices: block_env.l2_gas_prices.clone(),
             l1_gas_prices: block_env.l1_gas_prices.clone(),
-            parent_hash: self.blockchain.provider().latest_hash()?,
             l1_data_gas_prices: block_env.l1_data_gas_prices.clone(),
         };
 
@@ -125,6 +135,7 @@ impl<EF: ExecutorFactory> Backend<EF> {
         )?;
 
         let block = SealedBlockWithStatus { block, status: FinalityStatus::AcceptedOnL2 };
+        let block_hash = block.block.hash;
         let block_number = block.block.header.number;
 
         // TODO: maybe should change the arguments for insert_block_with_states_and_receipts to
@@ -133,7 +144,13 @@ impl<EF: ExecutorFactory> Backend<EF> {
         self.store_block(block, execution_output.states, receipts, traces)?;
 
         info!(target: LOG_TARGET, %block_number, %tx_count, "Block mined.");
-        Ok(MinedBlockOutcome { block_number, txs: tx_hashes, stats: execution_output.stats })
+
+        Ok(MinedBlockOutcome {
+            block_hash,
+            block_number,
+            txs: tx_hashes,
+            stats: execution_output.stats,
+        })
     }
 
     fn store_block(
@@ -193,43 +210,49 @@ impl<EF: ExecutorFactory> Backend<EF> {
         let local_hash = provider.block_hash_by_num(chain_spec.genesis.number)?;
 
         if let Some(local_hash) = local_hash {
-            let genesis_hash = chain_spec.block().header.compute_hash();
+            let genesis_block = chain_spec.block();
+            let mut genesis_state_updates = chain_spec.state_updates();
+
+            // commit the block but compute the trie using volatile storage so that it won't
+            // overwrite the existing trie this is very hacky and we should find for a
+            // much elegant solution.
+            let committed_block = commit_genesis_block(
+                GenesisTrieWriter,
+                genesis_block.header.clone(),
+                Vec::new(),
+                &[],
+                &mut genesis_state_updates.state_updates,
+            )?;
+
             // check genesis should be the same
-            if local_hash != genesis_hash {
+            if local_hash != committed_block.hash {
                 return Err(anyhow!(
-                    "Genesis block hash mismatch: expected {genesis_hash:#x}, got {local_hash:#x}",
+                    "Genesis block hash mismatch: expected {:#x}, got {local_hash:#x}",
+                    committed_block.hash
                 ));
             }
 
-            info!("Genesis has already been initialized");
+            info!(genesis_hash = %local_hash, "Genesis has already been initialized");
         } else {
             // Initialize the dev genesis block
 
-            let block = chain_spec.block().seal();
-            let block = SealedBlockWithStatus { block, status: FinalityStatus::AcceptedOnL1 };
+            let block = chain_spec.block();
             let states = chain_spec.state_updates();
 
-            let mut block = block;
-            let block_number = block.block.header.number;
+            let outcome = self.do_mine_block(
+                &BlockEnv {
+                    number: block.header.number,
+                    timestamp: block.header.timestamp,
+                    l2_gas_prices: block.header.l2_gas_prices,
+                    l1_gas_prices: block.header.l1_gas_prices,
+                    l1_data_gas_prices: block.header.l1_data_gas_prices,
+                    sequencer_address: block.header.sequencer_address,
+                    starknet_version: block.header.starknet_version,
+                },
+                ExecutionOutput { states, ..Default::default() },
+            )?;
 
-            let class_trie_root = provider
-                .trie_insert_declared_classes(block_number, &states.state_updates.declared_classes)
-                .context("failed to update class trie")?;
-
-            let contract_trie_root = provider
-                .trie_insert_contract_updates(block_number, &states.state_updates)
-                .context("failed to update contract trie")?;
-
-            let genesis_state_root = hash::Poseidon::hash_array(&[
-                short_string!("STARKNET_STATE_V0"),
-                contract_trie_root,
-                class_trie_root,
-            ]);
-
-            block.block.header.state_root = genesis_state_root;
-            provider.insert_block_with_states_and_receipts(block, states, vec![], vec![])?;
-
-            info!("Genesis initialized");
+            info!(genesis_hash = %outcome.block_hash, "Genesis initialized");
         }
 
         Ok(())
