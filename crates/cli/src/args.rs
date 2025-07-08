@@ -116,10 +116,6 @@ pub struct NodeArgs {
     #[command(flatten)]
     pub development: DevOptions,
 
-    #[cfg(feature = "explorer")]
-    #[command(flatten)]
-    pub explorer: ExplorerOptions,
-
     #[cfg(feature = "cartridge")]
     #[command(flatten)]
     pub cartridge: CartridgeOptions,
@@ -254,8 +250,6 @@ impl NodeArgs {
                 max_response_body_size: None,
                 timeout: self.server.timeout.map(Duration::from_secs),
                 cors_origins,
-                #[cfg(feature = "explorer")]
-                explorer: self.explorer.explorer,
                 max_event_page_size: Some(self.server.max_event_page_size),
                 max_proof_keys: Some(self.server.max_proof_keys),
                 max_call_gas: Some(self.server.max_call_gas),

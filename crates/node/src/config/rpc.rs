@@ -41,8 +41,6 @@ pub enum RpcModuleKind {
 pub struct RpcConfig {
     pub addr: IpAddr,
     pub port: u16,
-    #[cfg(feature = "explorer")]
-    pub explorer: bool,
     pub apis: RpcModulesList,
     pub cors_origins: Vec<HeaderValue>,
     pub max_connections: Option<u32>,
@@ -65,8 +63,6 @@ impl RpcConfig {
 impl Default for RpcConfig {
     fn default() -> Self {
         Self {
-            #[cfg(feature = "explorer")]
-            explorer: false,
             cors_origins: Vec::new(),
             addr: DEFAULT_RPC_ADDR,
             port: DEFAULT_RPC_PORT,

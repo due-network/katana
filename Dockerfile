@@ -1,37 +1,24 @@
-FROM ubuntu:24.04 as builder
+FROM rust:1.72 as builder
 
-RUN apt-get update && apt install -y git libtool automake autoconf make tini ca-certificates curl
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    build-essential \
+    wget \
+    libclang-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/Comcast/Infinite-File-Curtailer.git curtailer \
-	&& cd curtailer \
-	&& libtoolize \
-	&& aclocal \
-	&& autoheader \
-	&& autoconf \
-	&& automake --add-missing \
-	&& ./configure \
-	&& make \
-	&& make install \
-	&& curtail --version
+WORKDIR /usr/src/app
 
-FROM ubuntu:24.04 as base
+COPY . .
 
-# Required by cairo-native 
-RUN apt-get update && apt install -y binutils clang-19
+RUN cargo install --path ./bin/katana --locked --force
 
-COPY --from=builder /etc/ssl/certs /etc/ssl/certs
-COPY --from=builder /usr/bin/curl /usr/bin/curl
+FROM debian:bookworm-slim
 
-COPY --from=builder /usr/bin/tini /tini
-ENTRYPOINT ["/tini", "--"]
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libc6 \
+    && rm -rf /var/lib/apt/lists/*
 
-ARG TARGETPLATFORM
+COPY --from=builder /usr/local/cargo/bin/katana /usr/local/bin/katana
 
-LABEL description="Dojo is a provable game engine and toolchain for building onchain games and autonomous worlds with Cairo" \
-	authors="Ammar Arif <evergreenkary@gmail.com>" \
-	source="https://github.com/dojoengine/katana" \
-	documentation="https://book.dojoengine.org/"
-
-COPY --from=artifacts --chmod=755 $TARGETPLATFORM/katana /usr/local/bin/
-
-COPY --from=builder /usr/local/bin/curtail /usr/local/bin/curtail
+ENTRYPOINT ["/usr/local/bin/katana", "--http.addr", "0.0.0.0"]

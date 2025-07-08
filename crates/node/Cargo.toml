@@ -49,7 +49,6 @@ tracing-subscriber = { workspace = true, optional = true }
 
 [features]
 cartridge = [ "katana-rpc-api/cartridge", "katana-rpc/cartridge" ]
-explorer = [ "katana-rpc/explorer" ]
 native = [ "katana-executor/native" ]
 # experimental feature to test katana full node mode
 full-node = [ "dep:katana-feeder-gateway", "dep:tokio" ]

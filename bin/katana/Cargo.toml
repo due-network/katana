@@ -54,7 +54,7 @@ rstest.workspace = true
 tempfile.workspace = true
 
 [features]
-default = [ "cartridge", "init-slot", "jemalloc", "katana-cli/explorer" ]
+default = [ "cartridge", "init-slot", "jemalloc" ]
 
 cartridge = [ "katana-cli/cartridge" ]
 client = [ "dep:colored_json", "dep:serde", "dep:serde_json" ]

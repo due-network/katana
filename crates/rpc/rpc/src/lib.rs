@@ -99,7 +99,6 @@ pub struct RpcServer {
     metrics: bool,
     cors: Option<Cors>,
     health_check: bool,
-    explorer: bool,
 
     module: RpcModule<()>,
     max_connections: u32,
@@ -113,7 +112,6 @@ impl RpcServer {
         Self {
             cors: None,
             metrics: false,
-            explorer: false,
             health_check: false,
             module: RpcModule::new(()),
             max_connections: 100,
@@ -161,12 +159,6 @@ impl RpcServer {
         self
     }
 
-    /// Enables explorer.
-    pub fn explorer(mut self, enable: bool) -> Self {
-        self.explorer = enable;
-        self
-    }
-
     pub fn cors(mut self, cors: Cors) -> Self {
         self.cors = Some(cors);
         self
@@ -196,14 +188,6 @@ impl RpcServer {
             None
         };
 
-        #[cfg(feature = "explorer")]
-        let explorer_layer = if self.explorer {
-            let layer = katana_explorer::ExplorerLayer::new(String::new()).unwrap();
-            Some(layer)
-        } else {
-            None
-        };
-
         let rpc_metrics = self.metrics.then(|| RpcServerMetricsLayer::new(&modules));
         let http_tracer = TraceLayer::new_for_http().make_span_with(GoogleStackDriverMakeSpan);
 
@@ -212,9 +196,6 @@ impl RpcServer {
             .option_layer(self.cors.clone())
             .option_layer(health_check_proxy)
             .timeout(self.timeout);
-
-        #[cfg(feature = "explorer")]
-        let http_middleware = http_middleware.option_layer(explorer_layer);
 
         let rpc_middleware =
             RpcServiceBuilder::new().option_layer(rpc_metrics).layer(logger::RpcLoggerLayer::new());
@@ -242,11 +223,6 @@ impl RpcServer {
         // a free port during the call to `ServerBuilder::build(addr)`.
 
         info!(target: "rpc", addr = %handle.addr, "RPC server started.");
-
-        if self.explorer {
-            let addr = format!("{}/explorer", handle.addr);
-            info!(target: "explorer", %addr, "Explorer started.");
-        }
 
         Ok(handle)
     }

@@ -493,22 +493,6 @@ impl Default for CartridgeOptions {
     }
 }
 
-#[cfg(feature = "explorer")]
-#[derive(Debug, Default, Args, Clone, Serialize, Deserialize, PartialEq)]
-#[command(next_help_heading = "Explorer options")]
-pub struct ExplorerOptions {
-    /// Enable and launch the explorer frontend
-    ///
-    /// This will start a web server that serves the explorer UI.
-    /// The explorer will be accessible at the `/explorer` path relative to the RPC server URL.
-    ///
-    /// For example, if the RPC server is running at `localhost:5050`, the explorer will be
-    /// available at `localhost:5050/explorer`.
-    #[arg(long)]
-    #[serde(default)]
-    pub explorer: bool,
-}
-
 // ** Default functions to setup serde of the configuration file **
 fn default_seed() -> String {
     DEFAULT_DEV_SEED.to_string()
